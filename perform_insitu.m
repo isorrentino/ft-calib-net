@@ -1,9 +1,9 @@
 load('./datasets/calib_dataset.mat')
 
 parts = fieldnames(dataset); % extract names of features
-calibartions = struct();
+calibrations = struct();
 for i = 1:length(parts)
-    calibartions.(parts{i}) = insitu_calib(dataset.(parts{i}));
+    calibrations.(parts{i}) = insitu_calib(dataset.(parts{i}));
 end
 
-save("insitu_calib/calibartions.mat", "calibartions", "-v7.3")
+save("insitu_calib/calibrations.mat", "calibrations", "-v7.3")
