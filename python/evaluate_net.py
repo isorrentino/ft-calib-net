@@ -5,8 +5,7 @@ import h5py
 import numpy as np
 import pickle
 
-
-part = "l_leg"
+part = "r_leg"
 dataset = dict()
 
 if __name__ == "__main__":
@@ -30,11 +29,11 @@ if __name__ == "__main__":
                                  ) / (scaling[part]["ft_measured"]["std"])
         dataset["all_ft_measured"] = np.array(file["dataset"][part]["ft_measured"])
 
-    # with h5py.File("old_approach/calib_soa.mat", "r") as file:
-    #     C = np.array(file["results"]["sol"]["l_arm_ft_sensor"]["C"])
-    #     o = np.array(file["results"]["sol"]["l_arm_ft_sensor"]["o"])
+    with h5py.File("../insitu_calib/calibrations.mat", "r") as file:
+        C = np.array(file["calibrations"][part]["C"])
+        o = np.array(file["calibrations"][part]["o"])
 
-    # prev_predict = (C.T @ dataset["all_ft_measured"].T - o.T).T
+    prev_predict = (C.T @ dataset["all_ft_measured"].T - o.T).T
 
     train_examples = np.expand_dims(
         np.concatenate(
@@ -84,11 +83,11 @@ if __name__ == "__main__":
             dataset["ft_expected"][:, i],
             label="Ground-truth",
         )
-        # ax[i].plot(
-        #     np.array(range(len(predict_dataset[:, i]))) * 0.01,
-        #     prev_predict[:, i],
-        #     label="Linear in-situ calib",
-        # )
+        ax[i].plot(
+            np.array(range(len(predict_dataset[:, i]))) * 0.01,
+            prev_predict[:, i],
+            label="Linear in-situ calib",
+        )
         if i == 0:
             ax[i].legend()
         ax[i].set_xlabel("time (s)")
@@ -113,11 +112,11 @@ if __name__ == "__main__":
             predict_dataset[:, i] - dataset["ft_expected"][:, i],
             label="NN output",
         )
-        # ax[i].plot(
-        #     np.array(range(len(predict_dataset[:, i]))) * 0.01,
-        #     prev_predict[:, i] - dataset["ft_expected"][:, i],
-        #     label="Linear in-situ calib",
-        # )
+        ax[i].plot(
+            np.array(range(len(predict_dataset[:, i]))) * 0.01,
+            prev_predict[:, i] - dataset["ft_expected"][:, i],
+            label="Linear in-situ calib",
+        )
         if i == 0:
             ax[i].legend()
 
