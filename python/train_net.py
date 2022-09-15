@@ -89,7 +89,7 @@ def train_net(file, part):
 
 
 if __name__ == "__main__":
-    parts = ['l_arm', 'r_arm', 'l_foot_front', 'l_foot_rear', 'r_foot_front', 'r_foot_rear', 'l_leg', 'r_leg']
+    parts = ['r_arm']
     scaling = dict()
     models = dict()
     for part in parts:
