@@ -13,7 +13,7 @@ datasets = ["robot_logger_device_2022_09_09_12_12_59.mat",  ...
     "robot_logger_device_2022_09_09_15_26_31.mat", ...
     "robot_logger_device_2022_09_09_15_53_01.mat"];
 
-weights = [0, 0.705, 1.0771, 1.665, 2.0916, 2.6795];
+weights = [0.0732, 0.705, 1.0771, 1.665, 2.0916, 2.6795];
 
 % ### Validation
 
