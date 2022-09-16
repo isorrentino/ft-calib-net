@@ -1,4 +1,4 @@
-load('./datasets/calib_dataset.mat')
+load('./datasets/calib6000_dataset.mat')
 
 parts = fieldnames(dataset); % extract names of features
 calibrations = struct();
