@@ -100,7 +100,8 @@ function [dataset_output] = create_dataset(filename, additional_weight, shuffle_
     fullBodyUnknowns = iDynTree.LinkUnknownWrenchContacts(estimator.model());
 
     if shuffle_samples
-        shuffled_indeces = randperm(samples,2000);
+%         shuffled_indeces = randperm(samples,5000);
+        shuffled_indeces = 1:samples;
     else
         shuffled_indeces = 1:samples; % I'm taking the dataset as it is
     end
