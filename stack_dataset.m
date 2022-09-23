@@ -1,59 +1,39 @@
-clear all
-clc
-close all
-
-calibration = true;
-
-% ### Calibration
-
-datasets = {{"robot_logger_device_2022_09_09_15_15_56.mat", 2.0916}, ...
-            {"robot_logger_device_2022_09_09_15_20_10.mat", 2.0916}, ...
-            {"robot_logger_device_2022_09_09_15_23_26.mat", 2.0916}, ...
-            {"robot_logger_device_2022_09_09_15_26_31.mat", 2.0916}, ...
-            {"robot_logger_device_2022_09_09_15_36_36.mat", 2.6795}, ...
-            {"robot_logger_device_2022_09_09_15_48_31.mat", 2.6795}, ...
-            {"robot_logger_device_2022_09_09_15_53_01.mat", 2.6795}, ...
-            {"robot_logger_device_2022_09_09_15_56_22.mat", 2.6795}, ...
-            {"robot_logger_device_2022_09_09_15_59_28.mat", 2.6795}, ...
-            };
-
-
-% ### Validation
-
-% datasets = ["robot_logger_device_2022_09_09_14_29_47.mat", ...
-%             "robot_logger_device_2022_09_09_14_59_33.mat", ...
-%             "robot_logger_device_2022_09_09_15_15_56.mat", ...
-%             "robot_logger_device_2022_09_09_15_59_28.mat"];
-
-
-prefix = "./dataset_complete/different_weights/";
-% prefix = "./dataset_complete/dataset_is/traj_ident_cut/";
-
-dataset = struct([]);
-
-for idx = 1 : size(datasets,2)
-    d = datasets{idx}{1}
-    weight = datasets{idx}{2}
+function [dataset_output] = stack_dataset(filename, percentage)
+    load(filename);
     
-%     if isempty(dataset)    
+    threshold_f = 0.1; % forces
+    threshold_m = 0.005; % moments
+    
+    wbar = waitbar(0, 'Starting');
 
-    dataset = create_dataset(strcat(prefix, d), weight, calibration);
+    prefices = {'l_arm', 'r_arm'};
     
-%     else
-%         temp_d  = create_dataset(strcat(prefix, d), weight, calibration);
-%         fn = fieldnames(dataset);
-%         for k=1:numel(fn)      
-%             dataset.(fn{k}).orientation_quat = [dataset.(fn{k}).orientation_quat, temp_d.(fn{k}).orientation_quat];
-%             dataset.(fn{k}).ft_expected = [dataset.(fn{k}).ft_expected, temp_d.(fn{k}).ft_expected];
-%             dataset.(fn{k}).ft_measured = [dataset.(fn{k}).ft_measured, temp_d.(fn{k}).ft_measured];
-%             dataset.(fn{k}).ang_vel = [dataset.(fn{k}).ang_vel, temp_d.(fn{k}).ang_vel];
-%             dataset.(fn{k}).lin_acc = [dataset.(fn{k}).lin_acc, temp_d.(fn{k}).lin_acc];
-%         end
-%     end
+    samples = size(dataset.(prefices{1}).ft_measured,2);
     
-    if calibration
-        save(strcat("datasets/",d), "dataset", "-v7.3")
-    else
-        save("datasets/test_dataset.mat", "dataset", "-v7.3")
+    f = dataset.r_arm.ft_measured(1:3,:);
+    m = dataset.r_arm.ft_measured(4:6,:);
+
+    distance_f = vecnorm(diff(f')');
+    distance_m = vecnorm(diff(m')');
+    
+    idx = find((distance_f > threshold_f) | (distance_m > threshold_m));
+    
+    
+%     indeces = 1:samples;
+
+    for k = 1:floor(length(idx)*percentage)
+        waitbar(double(k)/double(floor(length(idx)*percentage)), wbar, sprintf('Progress: %d %%', floor(double(k)/double(floor(length(idx)*percentage))*100.0)));
+        fn = prefices;
+        for j=1:numel(fn)
+            dataset_output.(fn{j}).ft_expected(:,k) = dataset.(fn{j}).ft_expected(:,idx(k));
+            dataset_output.(fn{j}).orientation_quat(:,k) = dataset.(fn{j}).orientation_quat(:,idx(k));
+            dataset_output.(fn{j}).ft_measured(:,k) = dataset.(fn{j}).ft_measured(:,idx(k));
+            dataset_output.(fn{j}).ang_vel(:,k) = dataset.(fn{j}).ang_vel(:,idx(k));
+            dataset_output.(fn{j}).lin_acc(:,k) = dataset.(fn{j}).lin_acc(:,idx(k));
+            dataset_output.(fn{j}).ft_temperature(:,k) = dataset.(fn{j}).ft_temperature(idx(k));
+        end
+        dataset_output.joints(:,k) = dataset.joints(:,idx(k));
     end
+
+    close(wbar)
 end

@@ -9,11 +9,13 @@ import pickle
 def train_net(file, part):
     dataset = dict()
     with h5py.File(file, "r") as f:
-        dataset["ang_vel"] = np.array(f["dataset"][part]["ang_vel"])
-        dataset["lin_acc"] = np.array(f["dataset"][part]["lin_acc"])
-        dataset["orientation_quat"] = np.array(f["dataset"][part]["orientation_quat"])
+        # dataset["ang_vel"] = np.array(f["dataset"][part]["ang_vel"])
+        # dataset["lin_acc"] = np.array(f["dataset"][part]["lin_acc"])
+        # dataset["orientation_quat"] = np.array(f["dataset"][part]["orientation_quat"])
         dataset["ft_expected"] = np.array(f["dataset"][part]["ft_expected"])
         dataset["ft_measured"] = np.array(f["dataset"][part]["ft_measured"])
+        dataset["ft_temperature"] = np.array(f["dataset"][part]["ft_temperature"])
+        dataset["joints"] = np.array(f["dataset"]["joints"])
 
     # scale dataset
     scaling = dict()
@@ -24,84 +26,77 @@ def train_net(file, part):
             scaling[key]["std"] = np.std(value, axis=0)
             dataset[key] = (value - scaling[key]["mean"]) / scaling[key]["std"]
 
-    # augment dataset using quaternion property
-    numpy_dataset = np.concatenate(
-        (
-            np.concatenate(
-                (
-                    # dataset["ang_vel"],
-                    # dataset["lin_acc"],
-                    # dataset["orientation_quat"],
-                    dataset["ft_measured"],
-                ),
-                axis=1,
-            ),
-            np.concatenate(
-                (
-                    # dataset["ang_vel"],
-                    # dataset["lin_acc"],
-                    # -dataset["orientation_quat"],
-                    dataset["ft_measured"],
-                ),
-                axis=1,
-            ),
-        ),
-        axis=0,
-    )
-    numpy_expected = np.concatenate(
-        (dataset["ft_expected"], dataset["ft_expected"]), axis=0
-    )
+            # augment dataset using quaternion property
+    # numpy_dataset = np.concatenate(
+    #     (
+    #         np.concatenate(
+    #             (
+    #                 # dataset["ang_vel"],
+    #                 # dataset["lin_acc"],
+    #                 # dataset["orientation_quat"],
+    #                 dataset["ft_measured"],
+    #             ),
+    #             axis=1,
+    #         ),
+    #         np.concatenate(
+    #             (
+    #                 # dataset["ang_vel"],
+    #                 # dataset["lin_acc"],
+    #                 # -dataset["orientation_quat"],
+    #                 dataset["ft_measured"],
+    #             ),
+    #             axis=1,
+    #         ),
+    #     ),
+    #     axis=0,
+    # )
+
+    # numpy_expected = np.concatenate(
+    #     (dataset["ft_expected"], dataset["ft_expected"]), axis=0
+    # )
+
+    numpy_dataset = dataset["ft_measured"]
+
+    numpy_expected = dataset["ft_expected"]
 
     train_examples = np.expand_dims(numpy_dataset, axis=2)
     train_labels = np.expand_dims(numpy_expected, axis=2)
 
     # train_dataset = tf.data.Dataset.from_tensor_slices((train_examples, train_labels))
     x_train, x_valid, y_train, y_valid = train_test_split(
-        train_examples, train_labels, test_size=0.33, shuffle=True
+        train_examples, train_labels, test_size=0.1, shuffle=True
     )
 
     model = keras.Sequential(
-        [keras.layers.Dense(
-            input_shape=(6,),
-            units=50,
-            activation="relu",
-            # kernel_initializer="uniform",
-            # kernel_regularizer=keras.regularizers.L2(0.01),
-            # activity_regularizer=keras.regularizers.L2(0.01),
-            name="layer1"
-        ),
-            # keras.layers.Dropout(rate=0.1,
-            #                    # kernel_regularizer=keras.regularizers.L2(0.01),
-            #                    # activity_regularizer=keras.regularizers.L2(0.01),
-            #                    name="layer2"),
-            keras.layers.Dense(units=30,
+        [keras.layers.Dropout(input_shape=(6,),
+                              rate=0.05,
+                              name="layer1"),
+            keras.layers.Dense(units=24,
+                               activation="relu",
+                               # kernel_initializer="uniform",
                                # kernel_regularizer=keras.regularizers.L2(0.01),
                                # activity_regularizer=keras.regularizers.L2(0.01),
                                name="layer2"),
-            # keras.layers.Dropout(rate=0.3,
-            #                      # kernel_regularizer=keras.regularizers.L2(0.01),
-            #                      # activity_regularizer=keras.regularizers.L2(0.01),
-            #                      name="layer3"),
-            keras.layers.Dense(units=15,
-                               # kernel_regularizer=keras.regularizers.L2(0.01),
-                               # activity_regularizer=keras.regularizers.L2(0.01),
+            keras.layers.Dropout(rate=0.05,
+                                 name="layer3"),
+            keras.layers.Dense(units=12,
+                               activation="relu",
                                name="layer4"),
+            keras.layers.Dropout(rate=0.05,
+                                 name="layer5"),
             keras.layers.Dense(units=6,
-                               # kernel_regularizer=keras.regularizers.L2(0.01),
-                               # activity_regularizer=keras.regularizers.L2(0.01),
-                               name="layer5"),
-            # keras.layers.Dense(units=6),
+                               name="layer6"),
         ]
     )
 
     model.compile(
         loss=tf.keras.losses.MeanSquaredError(reduction="auto", name="mean_squared_error"),
         metrics=keras.metrics.MeanSquaredError(name="mean_squared_error", dtype=None),
-        optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
+        optimizer=tf.keras.optimizers.Adam(),
     )
 
     model.fit(
-        x=x_train, y=y_train, epochs=10, batch_size=60, validation_data=(x_valid, y_valid)
+        x=x_train, y=y_train, epochs=25, batch_size=32, validation_data=(x_valid, y_valid)
     )
 
     return model, scaling
@@ -112,7 +107,7 @@ if __name__ == "__main__":
     scaling = dict()
     models = dict()
     for part in parts:
-        models[part], scaling[part] = train_net("../datasets/calib_dataset_3.mat", part)
+        models[part], scaling[part] = train_net("../datasets/calib_dataset.mat", part)
 
     for part in parts:
         models[part].save("../autogenerated/models_" + part + "/")

@@ -1,4 +1,11 @@
-load('./datasets/calib2000_dataset.mat')
+opti = casadi.Opti();
+x = opti.variable();
+y = opti.variable();
+opti.minimize((1-x)^2+(y-x^2)^2);
+opti.solver('ipopt');
+sol = opti.solve();
+
+load('./datasets/calib_dataset.mat')
 
 parts = fieldnames(dataset); % extract names of features
 calibrations = struct();

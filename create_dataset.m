@@ -1,4 +1,4 @@
-function [dataset_output] = create_dataset(filename, additional_weight, shuffle_samples)
+function [dataset] = create_dataset(filename, additional_weight)
     f = waitbar(0, 'Starting');
     robotName='iCubGenova09'; %% Name of the robot
     load(filename);
@@ -6,7 +6,8 @@ function [dataset_output] = create_dataset(filename, additional_weight, shuffle_
     meshFilePrefix = [getenv('ROBOTOLOGY_SUPERBUILD_INSTALL_PREFIX') '/share']; %% Path to the model meshes
     modelPath = [getenv('ROBOTOLOGY_SUPERBUILD_INSTALL_PREFIX') '/share/iCub/robots/' robotName '/'];  %% Path to the robot model
     fileName='model.urdf'; %% Name of the urdf file
-    prefices = {'l_arm', 'r_arm', 'l_foot_front', 'l_foot_rear', 'r_foot_front', 'r_foot_rear', 'l_leg', 'r_leg'};
+    prefices = {'l_arm', 'r_arm'};
+    joint_names = {'r_shoulder_pitch','r_shoulder_roll','r_shoulder_yaw','r_elbow','r_wrist_prosup'};
     %   ft_names_urdf = {'l_arm_ft_sensor';'r_arm_ft_sensor';'l_foot_front_ft_sensor'; ...
     %                    'l_foot_rear_ft_sensor';'r_foot_front_ft_sensor';'r_foot_rear_ft_sensor';'r_leg_ft_sensor'};
     contact_link = {'root_link'};
@@ -14,7 +15,12 @@ function [dataset_output] = create_dataset(filename, additional_weight, shuffle_
 
     world_H_base = eye(4);
     KinDynModel = iDynTreeWrappers.loadReducedModel(robot_logger_device.description_list, 'root_link', modelPath, fileName, false);
-    samples = robot_logger_device.orientations.l_foot_rear_ft_eul.dimensions(3);
+    samples_temp(1) = robot_logger_device.joints_state.positions.dimensions(3);
+    samples_temp(2) = robot_logger_device.accelerometers.r_arm_ft_acc.dimensions(3);
+    samples_temp(3) = robot_logger_device.gyros.l_arm_ft_gyro.dimensions(3);
+    samples_temp(4) = robot_logger_device.FTs.r_arm_ft_sensor.dimensions(3);
+    samples_temp(5) = robot_logger_device.temperatures.r_arm_ft_sensor.dimensions(3);
+    samples = min(samples_temp);
 
     dataset = struct();
     for p = prefices
@@ -24,9 +30,17 @@ function [dataset_output] = create_dataset(filename, additional_weight, shuffle_
         gyro_name = [prefix, '_ft_gyro'];
         dataset.(prefix) = struct();
         dataset.(prefix).orientation_quat = [];
-        dataset.(prefix).ang_vel = squeeze(robot_logger_device.gyros.(gyro_name).data);
-        dataset.(prefix).lin_acc = squeeze(robot_logger_device.accelerometers.(acc_name).data);
-        dataset.(prefix).ft_measured = lowpass(squeeze(robot_logger_device.FTs.(frame_name).data)', 10, 100)';
+        dataset.(prefix).ang_vel = squeeze(robot_logger_device.gyros.(gyro_name).data(:,:,1:samples));
+        dataset.(prefix).lin_acc = squeeze(robot_logger_device.accelerometers.(acc_name).data(:,:,1:samples));
+        dataset.(prefix).ft_temperature = squeeze(robot_logger_device.temperatures.(frame_name).data(:,:,1:samples));
+        dataset.(prefix).ft_measured = lowpass(squeeze(robot_logger_device.FTs.(frame_name).data(:,:,1:samples))', 0.5, 100)';
+    end
+    
+    joints = squeeze(robot_logger_device.joints_state.positions.data(:,:,1:samples));
+    dataset.joints = zeros(length(joint_names),size(joints,2));
+    for i = 1 : length(joint_names)
+        idx_in_description_list = find(contains(robot_logger_device.description_list,joint_names{i}));
+        dataset.joints(i,:) = joints(idx_in_description_list,:);
     end
 
     consideredJoints = iDynTree.StringVector();
@@ -99,16 +113,11 @@ function [dataset_output] = create_dataset(filename, additional_weight, shuffle_
     % Senso
     fullBodyUnknowns = iDynTree.LinkUnknownWrenchContacts(estimator.model());
 
-    if shuffle_samples
-%         shuffled_indeces = randperm(samples,5000);
-        shuffled_indeces = 1:samples;
-    else
-        shuffled_indeces = 1:samples; % I'm taking the dataset as it is
-    end
+    indeces = 1:samples; % I'm taking the dataset as it is
 
-    for k = 1:length(shuffled_indeces)
-        i = shuffled_indeces(k);
-        waitbar(double(k)/double(length(shuffled_indeces)), f, sprintf('Progress: %d %%', floor(double(k)/double(length(shuffled_indeces))*100.0)));
+    for k = 1:length(indeces)
+        i = indeces(k);
+        waitbar(double(k)/double(length(indeces)), f, sprintf('Progress: %d %%', floor(double(k)/double(length(indeces))*100.0)));
         s = robot_logger_device.joints_state.positions.data(:,1,i);
         ds = robot_logger_device.joints_state.velocities.data(:,1,i);
         dds = 0 * ds;
@@ -166,12 +175,9 @@ function [dataset_output] = create_dataset(filename, additional_weight, shuffle_
             new_string=erase(ft_names_from_urdf{j+1}, '_ft_sensor');
             frame_name = ft_names_from_urdf{j+1};
             expFTmeasurements.getMeasurement(iDynTree.SIX_AXIS_FORCE_TORQUE, j, estimatedSensorWrench);
-            dataset_output.(new_string).ft_expected(:,k) = estimatedSensorWrench.toMatlab();
+            dataset.(new_string).ft_expected(:,k) = estimatedSensorWrench.toMatlab();
             frameTransform = iDynTreeWrappers.getWorldTransform(KinDynModel, frame_name);
-            dataset_output.(new_string).orientation_quat(:,k) = rotm2quat(frameTransform(1:3,1:3))';
-            dataset_output.(new_string).ft_measured(:,k) = dataset.(new_string).ft_measured(:,shuffled_indeces(k));
-            dataset_output.(new_string).ang_vel(:,k) = dataset.(new_string).ang_vel(:,shuffled_indeces(k));
-            dataset_output.(new_string).lin_acc(:,k) = dataset.(new_string).lin_acc(:,shuffled_indeces(k));
+            dataset.(new_string).orientation_quat(:,k) = rotm2quat(frameTransform(1:3,1:3))';
         end
     end
     close(f)
