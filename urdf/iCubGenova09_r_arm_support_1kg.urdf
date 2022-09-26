@@ -777,9 +777,9 @@
     </collision>
     <inertial>
     <origin xyz="0 0 0" rpy="0 0 0"/>
-      <mass value="0.0732"/>
-        <inertia ixx="4.1910070e-03" ixy="0.0" ixz="0.0" iyy="4.1910060e-03" iyz="0.0" izz="7.9354930e-03"/>
-     </inertial>
+      <mass value="0.1171"/>
+      <inertia ixx="6.4130104e-07" ixy="0.0" ixz="0.0" iyy=" 6.4130104e-07" iyz="0.0" izz="1.1360930e-6"/>
+      </inertial>
   </link>
   <joint name="r_support_weight_origin_fixed_joint" type="fixed">
     <origin xyz="-0.0163  -0.0419225   0.009" rpy="-1.570796326794897 0 1.570796326794897"/>
@@ -794,33 +794,6 @@
     <child link="r_support_weight_origin"/>
     <dynamics damping="0.1"/>
   </joint>
-  <!--link name="r_weight_05">
-    <visual>
-      <geometry>an
-        <cylinder  radius="0.0505" length="0.015"/>
-      </geometry>
-      <material name="randomcolor_weight_05">
-        <color rgba="0.4 0.3 0.3 0.8"/>
-      </material>
-    </visual>
-    <collision>
-    <geometry>
-      <cylinder  radius="0.0505" length="0.015"/>
-    </geometry>
-    </collision>
-    <inertial>
-      <mass value="0.587"/>
-        <inertia ixx="4.1910070e-03" ixy="0.0" ixz="0.0" iyy="4.1910060e-03" iyz="0.0" izz="7.9354930e-03"/>
-      </inertial>
-  </link>
-  <joint name="r_weight_05" type="fixed">
-    <origin xyz="0 0 0.0075" rpy="0 0 0"/>
-    <axis xyz="0 0 0"/>
-    <parent link="r_support_weight_origin"/>
-    <child link="r_weight_05"/>
-    <limit effort="50000" lower="0.2617993877991494" upper="1.8500490071139892" velocity="50000"/>
-    <dynamics damping="1.0" friction="0.0"/>
-  </joint-->
   <link name="r_weight_1A">
     <visual>
       <geometry>
@@ -837,7 +810,7 @@
     </collision>
     <inertial>
       <mass value="0.960"/>
-        <inertia ixx="4.1910070e-03" ixy="0.0" ixz="0.0" iyy="4.1910060e-03" iyz="0.0" izz="7.9354930e-03"/>
+      <inertia ixx="9.9575998e-04" ixy="0.0" ixz="0.0" iyy="0.00099575998" iyz="0.0" izz="1.9357042e-03"/>
       </inertial>
   </link>
   <joint name="r_weight_1A" type="fixed">
