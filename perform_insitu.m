@@ -7,7 +7,9 @@ sol = opti.solve();
 
 load('./datasets/calib_dataset.mat')
 
-parts = fieldnames(dataset); % extract names of features
+parts = {'r_arm'};
+
+% parts = fieldnames(dataset); % extract names of features
 calibrations = struct();
 for i = 1:length(parts)
     calibrations.(parts{i}) = insitu_calib(dataset.(parts{i}));
