@@ -55,6 +55,7 @@ def train_net(file, part):
     #     (dataset["ft_expected"], dataset["ft_expected"]), axis=0
     # )
 
+    # numpy_dataset = np.concatenate((dataset["ft_measured"], dataset["ft_temperature"]),axis=1,)
     numpy_dataset = dataset["ft_measured"]
 
     numpy_expected = dataset["ft_expected"]

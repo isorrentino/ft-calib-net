@@ -1,4 +1,4 @@
-lables = {'fx','fy','fz','mx','my','mz'};
+labels = {'fx','fy','fz','mx','my','mz'};
 
 %% Plot ft measured VS ft expected
 
@@ -10,7 +10,7 @@ for i = 1 : 6
     plot(dataset.r_arm.ft_measured(i,:)' - offset(i))
     hold on
     plot(dataset.r_arm.ft_expected(i,:)')
-    ylabel(lables{i})
+    ylabel(labels{i})
     legend('measured','expected')
 end
 
@@ -35,4 +35,24 @@ subplot(2,1,2)
 plot(vecnorm(diff_m(10:end-10,:)'))
 title('vecnorm(diff(m))')
 
+
+
+%% Check moments old method ext contact vs new method modified urdfs
+
+
+load('/home/isorrentino/dev/ft-calib-net/datasets/urdf_robot_logger_device_2022_09_22_17_10_20.mat')
+ft1 = dataset.r_arm.ft_expected';
+load('/home/isorrentino/dev/ft-calib-net/datasets/robot_logger_device_2022_09_22_17_10_20.mat')
+ft2 = dataset.r_arm.ft_expected';
+
+figure
+for i = 1 : 6
+    subplot(2,3,i)
+    plot(ft1(:,i),'linewidth',1.5)
+    hold on
+    plot(ft2(:,i),'linewidth',1.5)
+    xlabel('samples')
+    ylabel(labels{i})
+    legend('new with 2.5 kg','old with 2.5 kg')
+end
 
