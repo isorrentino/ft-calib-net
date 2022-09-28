@@ -1,117 +1,103 @@
+import h5py
+import pickle
+import numpy as np
 import tensorflow as tf
 from tensorflow import keras
-import h5py
-import numpy as np
+from datetime import datetime
 from sklearn.model_selection import train_test_split
-import pickle
 
 
 def train_net(file, part):
+
+    # Read the dataset
     dataset = dict()
     with h5py.File(file, "r") as f:
-        # dataset["ang_vel"] = np.array(f["dataset"][part]["ang_vel"])
-        # dataset["lin_acc"] = np.array(f["dataset"][part]["lin_acc"])
-        # dataset["orientation_quat"] = np.array(f["dataset"][part]["orientation_quat"])
-        dataset["ft_expected"] = np.array(f["dataset"][part]["ft_expected"])
+        dataset["ang_vel"] = np.array(f["dataset"][part]["ang_vel"])
+        dataset["lin_acc"] = np.array(f["dataset"][part]["lin_acc"])
+        dataset["orientation_quat"] = np.array(f["dataset"][part]["orientation_quat"])
         dataset["ft_measured"] = np.array(f["dataset"][part]["ft_measured"])
         dataset["ft_temperature"] = np.array(f["dataset"][part]["ft_temperature"])
         dataset["joints"] = np.array(f["dataset"]["joints"])
+        dataset["ft_expected"] = np.array(f["dataset"][part]["ft_expected"])
 
-    # scale dataset
+    # Scale the dataset
     scaling = dict()
     for key, value in dataset.items():
-        if key != "orientation_quat":
+        if key != "orientation_quat": # TODO: quaternions are normalized but have no 0 mean and 1 std
             scaling[key] = dict()
             scaling[key]["mean"] = np.mean(value, axis=0)
             scaling[key]["std"] = np.std(value, axis=0)
             dataset[key] = (value - scaling[key]["mean"]) / scaling[key]["std"]
 
-            # augment dataset using quaternion property
-    # numpy_dataset = np.concatenate(
-    #     (
-    #         np.concatenate(
-    #             (
-    #                 # dataset["ang_vel"],
-    #                 # dataset["lin_acc"],
-    #                 # dataset["orientation_quat"],
-    #                 dataset["ft_measured"],
-    #             ),
-    #             axis=1,
-    #         ),
-    #         np.concatenate(
-    #             (
-    #                 # dataset["ang_vel"],
-    #                 # dataset["lin_acc"],
-    #                 # -dataset["orientation_quat"],
-    #                 dataset["ft_measured"],
-    #             ),
-    #             axis=1,
-    #         ),
-    #     ),
-    #     axis=0,
-    # )
-
-    # numpy_expected = np.concatenate(
-    #     (dataset["ft_expected"], dataset["ft_expected"]), axis=0
-    # )
-
-    numpy_dataset = dataset["ft_measured"]
-
+    # Define network input # TODO: ft_measured + temperature - NO joints + orientation_quat -> change also eval
+    numpy_dataset = np.concatenate((dataset["ft_measured"],
+                                    # dataset["ang_vel"],
+                                    # dataset["lin_acc"],
+                                    # dataset["orientation_quat"],
+                                    dataset["ft_temperature"],
+                                    # dataset["joints"],
+                                    ), axis=1)
     numpy_expected = dataset["ft_expected"]
 
+    # Split between training and validation
     train_examples = np.expand_dims(numpy_dataset, axis=2)
     train_labels = np.expand_dims(numpy_expected, axis=2)
-
-    # train_dataset = tf.data.Dataset.from_tensor_slices((train_examples, train_labels))
     x_train, x_valid, y_train, y_valid = train_test_split(
-        train_examples, train_labels, test_size=0.1, shuffle=True
+        train_examples, train_labels, test_size=0.33, shuffle=True # TODO: validation size?
     )
+
+    # Define the network model # TODO: number of layers? number of units? activation? dropout rate? weights initialization?
+    dropout_rate = 0.05
 
     model = keras.Sequential(
-        [keras.layers.Dropout(input_shape=(6,),
-                              rate=0.05,
-                              name="layer1"),
-            keras.layers.Dense(units=24,
-                               activation="relu",
-                               # kernel_initializer="uniform",
-                               # kernel_regularizer=keras.regularizers.L2(0.01),
-                               # activity_regularizer=keras.regularizers.L2(0.01),
-                               name="layer2"),
-            keras.layers.Dropout(rate=0.05,
-                                 name="layer3"),
-            keras.layers.Dense(units=12,
-                               activation="relu",
-                               name="layer4"),
-            keras.layers.Dropout(rate=0.05,
-                                 name="layer5"),
-            keras.layers.Dense(units=6,
-                               name="layer6"),
-        ]
+        # [keras.layers.Dropout(input_shape=(7,), # TODO: not on small inputs?
+        #                       rate=dropout_rate),
+         [keras.layers.Dense(input_shape=(7,),
+                            units=28,
+                            # kernel_initializer="uniform",
+                            # kernel_regularizer=keras.regularizers.L2(0.01),
+                            # activity_regularizer=keras.regularizers.L2(0.01),
+                            activation="elu"),
+         keras.layers.Dropout(rate=dropout_rate),
+         keras.layers.Dense(units=14,
+                            activation="elu"),
+         keras.layers.Dropout(rate=dropout_rate),
+         keras.layers.Dense(units=6),
+         ]
     )
 
+    # Define loss, metrics and optimizer
     model.compile(
-        loss=tf.keras.losses.MeanSquaredError(reduction="auto", name="mean_squared_error"),
+        loss=tf.keras.losses.MeanSquaredError(reduction="auto", name="mean_squared_error"), # TODO: reduction auto? mean_squared_logarithmic_error?
         metrics=keras.metrics.MeanSquaredError(name="mean_squared_error", dtype=None),
-        optimizer=tf.keras.optimizers.Adam(),
+        optimizer=tf.keras.optimizers.Adam(), # TODO: learning rate? variable? weight decay? variable?
     )
 
-    model.fit(
-        x=x_train, y=y_train, epochs=25, batch_size=32, validation_data=(x_valid, y_valid)
-    )
+    # Define training parameters # TODO: batch size? epochs?
+    model.fit(x=x_train, y=y_train, epochs=15, batch_size=32, validation_data=(x_valid, y_valid))
 
     return model, scaling
 
 
 if __name__ == "__main__":
+
     parts = ['r_arm']
+
     scaling = dict()
     models = dict()
-    for part in parts:
-        models[part], scaling[part] = train_net("../datasets/calib_dataset.mat", part)
 
     for part in parts:
-        models[part].save("../autogenerated/models_" + part + "/")
-        models[part].save("../export_model/" + part + "_net.h5", include_optimizer=False)
+        models[part], scaling[part] = train_net("datasets/calib_dataset.mat", part)
 
-    with open("../autogenerated/scaling.pickle", "wb") as handle:
-        pickle.dump(scaling, handle)
+    # for part in parts:
+    #     models[part].save("../autogenerated/models_" + part + "/")
+    #     models[part].save("../export_model/" + part + "_net.h5", include_optimizer=False)
+    #
+    # with open("../autogenerated/scaling.pickle", "wb") as handle:
+    #     pickle.dump(scaling, handle)
+
+    now = datetime.now().strftime("%Y%m%d-%H%M%S")
+    for part in parts:
+        models[part].save("models/" + part + "_net_" + str(now) + ".h5", include_optimizer=False)
+        with open("models/" + part + "_scaling_" + str(now) + ".pickle", "wb") as handle:
+            pickle.dump(scaling[part], handle)
