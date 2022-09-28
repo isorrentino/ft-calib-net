@@ -19,12 +19,12 @@ scaling_name = "r_arm_scaling_" + model_specification
 
 if __name__ == "__main__":
 
-    with open("models/" + scaling_name + ".pickle", "rb") as handle:
+    with open("../models/" + scaling_name + ".pickle", "rb") as handle:
         scaling = pickle.load(handle)
 
     for test_dataset in test_datasets:
 
-        with h5py.File("datasets/" + test_dataset + ".mat", "r") as file:
+        with h5py.File("../datasets/" + test_dataset + ".mat", "r") as file:
             dataset["ang_vel"] = (np.array(file["dataset"][part]["ang_vel"]) - scaling["ang_vel"]["mean"]) / (scaling["ang_vel"]["std"])
             dataset["lin_acc"] = (np.array(file["dataset"][part]["lin_acc"]) - scaling["lin_acc"]["mean"]) / (scaling["lin_acc"]["std"])
 
@@ -63,7 +63,7 @@ if __name__ == "__main__":
         )
         test_labels = np.expand_dims(dataset["ft_expected"], axis=2)
 
-        model = keras.models.load_model("models/" + model_name + ".h5")
+        model = keras.models.load_model("../models/" + model_name + ".h5")
 
         predict_dataset = (
                 model.predict(test_examples) * scaling["ft_expected"]["std"] + scaling["ft_expected"]["mean"]
@@ -117,7 +117,7 @@ if __name__ == "__main__":
         manager = plt.get_current_fig_manager()
         manager.full_screen_toggle()
         plt.show()
-        fig.savefig("fig1_"+test_dataset+"_"+model_specification+".png")
+        fig.savefig("../figures/fig1_"+test_dataset+"_"+model_specification+".png")
 
         # TODO: tune filters
         b, a = butter(2, 0.01, btype='low', analog=False)
@@ -150,7 +150,7 @@ if __name__ == "__main__":
         manager = plt.get_current_fig_manager()
         manager.full_screen_toggle()
         plt.show()
-        fig.savefig("fig2_"+test_dataset+"_"+model_specification+".png")
+        fig.savefig("../figures/fig2_"+test_dataset+"_"+model_specification+".png")
 
 
         fig, ax = plt.subplots(6)
@@ -186,6 +186,6 @@ if __name__ == "__main__":
         manager = plt.get_current_fig_manager()
         manager.full_screen_toggle()
         plt.show()
-        fig.savefig("fig3_"+test_dataset+"_"+model_specification+".png")
+        fig.savefig("../figures/fig3_"+test_dataset+"_"+model_specification+".png")
 
 
