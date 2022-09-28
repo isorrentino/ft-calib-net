@@ -8,8 +8,7 @@ from scipy.signal import butter, filtfilt
 # Fixed training params: val_size=0.33, elu, batch_size=32
 model_specification = "20220928-091609_NN28x14_dp0.05_FT_temp_15ep"
 
-# TODO: remember that `test_dataset` has inverted weights in the center
-test_datasets = ["calib_dataset", "2022_09_22_test_dataset", "test_dataset", "2022_09_09_01_test_dataset", "2022_09_09_02_test_dataset"]
+test_datasets = ["calib_dataset", "2022_09_22_test_dataset", "2022_09_16_test_dataset", "2022_09_09_01_test_dataset", "2022_09_09_02_test_dataset"]
 
 part = "r_arm"
 dataset = dict()
