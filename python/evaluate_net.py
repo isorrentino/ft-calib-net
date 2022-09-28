@@ -125,8 +125,8 @@ if __name__ == "__main__":
             ax[1].grid()
 
         fig.suptitle("Wrench estimation - " + test_dataset + " - " + part , fontsize=16)
-        manager = plt.get_current_fig_manager()
-        manager.full_screen_toggle()
+        # manager = plt.get_current_fig_manager()
+        # manager.full_screen_toggle()
         plt.show()
         fig.savefig("../figures/fig1_"+test_dataset+"_"+model_specification+".png")
 
@@ -144,22 +144,37 @@ if __name__ == "__main__":
         b, a = butter(2, 0.0003, btype='low', analog=False)
         # b, a = butter(2, 0.9999, btype='low', analog=False)
         fig = plt.figure()
+
+        ground_truth = np.linalg.norm(dataset["ft_expected"][:, :3], axis=1) / 9.80665 - 3.5 + 0.165
         plt.plot(np.array(range(len(predict_dataset[:, 0]))) * 0.01,
-                 np.linalg.norm(dataset["ft_expected"][:, :3], axis=1) / 9.80665 - 3.5 + 0.165,
+                 ground_truth,
                  label="Ground Truth")
+
+        # Compute RMSE for the neural network
+        filtered_nn_output = filtfilt(b, a, np.linalg.norm(ft_filtered_NN, axis=1) / 9.80665 - 3.5 + 0.165)
+        MSE_nn = np.square(np.subtract(filtered_nn_output, ground_truth)).mean()
+        RMSE_nn = math.sqrt(MSE_nn)
+
         plt.plot(np.array(range(len(predict_dataset[:, 0]))) * 0.01,
-                 filtfilt(b, a, np.linalg.norm(ft_filtered_NN, axis=1) / 9.80665 - 3.5 + 0.165),
-                 label="Neural Network")
+                 filtered_nn_output,
+                 label="Neural Network - RMSE: " + str(round(RMSE_nn, 2)))
+
+        # Compute RMSE for the linear model
+        filtered_linear = filtfilt(b, a, np.linalg.norm(ft_filtered_insitu, axis=1) / 9.80665 - 3.5 + 0.165)
+        MSE_lin = np.square(np.subtract(filtered_linear, ground_truth)).mean()
+        RMSE_lin = math.sqrt(MSE_lin)
+
         plt.plot(np.array(range(len(predict_dataset[:, 0]))) * 0.01,
-                 filtfilt(b, a, np.linalg.norm(ft_filtered_insitu, axis=1) / 9.80665 - 3.5 + 0.165),
-                 label="Linear")
+                 filtered_linear,
+                 label="Linear - RMSE: " + str(round(RMSE_lin, 2)))
+        
         plt.xlabel("time (s)")
         plt.ylabel("norm(f) / g")
         fig.suptitle("Weight estimation - " + test_dataset + " - " + part , fontsize=16)
         plt.grid()
         plt.legend()
-        manager = plt.get_current_fig_manager()
-        manager.full_screen_toggle()
+        # manager = plt.get_current_fig_manager()
+        # manager.full_screen_toggle()
         plt.show()
         fig.savefig("../figures/fig2_"+test_dataset+"_"+model_specification+".png")
 
@@ -173,28 +188,36 @@ if __name__ == "__main__":
             #     label="FT value with pure offset removal",
             # )
 
-            ax[i].plot(
-                np.array(range(len(predict_dataset[:, i]))) * 0.01,
-                np.abs(predict_dataset[:, i] - dataset["ft_expected"][:, i]),
-                label="Neural Network",
-            )
+            # Compute mean of the neural network error
+            nn_abs_error = np.abs(predict_dataset[:, i] - dataset["ft_expected"][:, i])
 
             ax[i].plot(
                 np.array(range(len(predict_dataset[:, i]))) * 0.01,
-                np.abs(prev_predict[:, i] - dataset["ft_expected"][:, i]),
-                label="Linear",
+                nn_abs_error,
+                label="Neural Network - mean: " + str(round(nn_abs_error.mean(),2)),
             )
 
-            if i == 0:
-                ax[i].legend()
+            # Compute mean of the linear model error
+            linear_abs_error = np.abs(prev_predict[:, i] - dataset["ft_expected"][:, i])
+
+            ax[i].plot(
+                np.array(range(len(predict_dataset[:, i]))) * 0.01,
+                linear_abs_error,
+                label="Linear - mean: " + str(round(linear_abs_error.mean(),2)),
+            )
+
+            # Shrink current axis by 20% and put the legend to the right
+            box = ax[i].get_position()
+            ax[i].set_position([box.x0, box.y0, box.width * 0.8, box.height])
+            ax[i].legend(loc='center left', bbox_to_anchor=(1, 0.5))
 
             ax[i].set_xlabel("time (s)")
             ax[i].set_ylabel(titles[i])
             ax[1].grid()
 
         fig.suptitle("Wrench estimation error - " + test_dataset + " - " + part , fontsize=16)
-        manager = plt.get_current_fig_manager()
-        manager.full_screen_toggle()
+        # manager = plt.get_current_fig_manager()
+        # manager.full_screen_toggle()
         plt.show()
         fig.savefig("../figures/fig3_"+test_dataset+"_"+model_specification+".png")
 
