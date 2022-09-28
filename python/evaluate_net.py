@@ -101,11 +101,11 @@ if __name__ == "__main__":
                 label="NN output",
             )
 
-            # ax[i].plot(
-            #     np.array(range(len(predict_dataset[:, i]))) * 0.01,
-            #     prev_predict[:, i],
-            #     label="Linear in-situ calib",
-            # )
+            ax[i].plot(
+                np.array(range(len(predict_dataset[:, i]))) * 0.01,
+                prev_predict[:, i],
+                label="Linear in-situ calib",
+            )
 
             if i == 0:
                 ax[i].legend()
@@ -126,10 +126,10 @@ if __name__ == "__main__":
         ft_filtered_NN[:, 0] = filtfilt(b, a, predict_dataset[:, 0])
         ft_filtered_NN[:, 1] = filtfilt(b, a, predict_dataset[:, 1])
         ft_filtered_NN[:, 2] = filtfilt(b, a, predict_dataset[:, 2])
-        # ft_filtered_insitu = np.zeros((len(prev_predict[:, 0]), 3))
-        # ft_filtered_insitu[:, 0] = filtfilt(b, a, prev_predict[:, 0])
-        # ft_filtered_insitu[:, 1] = filtfilt(b, a, prev_predict[:, 1])
-        # ft_filtered_insitu[:, 2] = filtfilt(b, a, prev_predict[:, 2])
+        ft_filtered_insitu = np.zeros((len(prev_predict[:, 0]), 3))
+        ft_filtered_insitu[:, 0] = filtfilt(b, a, prev_predict[:, 0])
+        ft_filtered_insitu[:, 1] = filtfilt(b, a, prev_predict[:, 1])
+        ft_filtered_insitu[:, 2] = filtfilt(b, a, prev_predict[:, 2])
 
         b, a = butter(2, 0.0003, btype='low', analog=False)
         # b, a = butter(2, 0.9999, btype='low', analog=False)
@@ -140,9 +140,9 @@ if __name__ == "__main__":
         plt.plot(np.array(range(len(predict_dataset[:, 0]))) * 0.01,
                  filtfilt(b, a, np.linalg.norm(ft_filtered_NN, axis=1) / 9.80665 - 3.5 + 0.165),
                  label="NN")
-        # plt.plot(np.array(range(len(predict_dataset[:, 0]))) * 0.01,
-        #          filtfilt(b, a, np.linalg.norm(ft_filtered_insitu, axis=1) / 9.80665 - 3.5 + 0.165),
-        #          label="Linear in-situ calib")
+        plt.plot(np.array(range(len(predict_dataset[:, 0]))) * 0.01,
+                 filtfilt(b, a, np.linalg.norm(ft_filtered_insitu, axis=1) / 9.80665 - 3.5 + 0.165),
+                 label="Linear in-situ calib")
         plt.xlabel("time (s)")
         plt.ylabel("norm(f) / g")
         plt.grid()
@@ -169,11 +169,11 @@ if __name__ == "__main__":
                 label="NN output",
             )
 
-            # ax[i].plot(
-            #     np.array(range(len(predict_dataset[:, i]))) * 0.01,
-            #     np.abs(prev_predict[:, i] - dataset["ft_expected"][:, i]),
-            #     label="Linear in-situ calib",
-            # )
+            ax[i].plot(
+                np.array(range(len(predict_dataset[:, i]))) * 0.01,
+                np.abs(prev_predict[:, i] - dataset["ft_expected"][:, i]),
+                label="Linear in-situ calib",
+            )
 
             if i == 0:
                 ax[i].legend()
