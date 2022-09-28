@@ -1,4 +1,5 @@
 import h5py
+import math
 import pickle
 import numpy as np
 from tensorflow import keras
@@ -91,28 +92,39 @@ if __name__ == "__main__":
             ax[i].plot(
                 np.array(range(len(predict_dataset[:, i]))) * 0.01,
                 dataset["ft_expected"][:, i],
-                label="Ground-truth",
+                label="Ground Truth",
             )
+
+            # Compute RMSE for the neural network
+            MSE_nn = np.square(np.subtract(predict_dataset[:, i], dataset["ft_expected"][:, i])).mean()
+            RMSE_nn = math.sqrt(MSE_nn)
 
             ax[i].plot(
                 np.array(range(len(predict_dataset[:, i]))) * 0.01,
                 predict_dataset[:, i],
-                label="NN output",
+                label="Neural Network - RMSE: " + str(round(RMSE_nn,2)),
             )
+
+            # Compute RMSE for the linear model
+            MSE_lin = np.square(np.subtract(prev_predict[:, i], dataset["ft_expected"][:, i])).mean()
+            RMSE_lin = math.sqrt(MSE_lin)
 
             ax[i].plot(
                 np.array(range(len(predict_dataset[:, i]))) * 0.01,
                 prev_predict[:, i],
-                label="Linear in-situ calib",
+                label="Linear - RMSE: " + str(round(RMSE_lin, 2)),
             )
 
-            if i == 0:
-                ax[i].legend()
+            # Shrink current axis by 20% and put the legend to the right
+            box = ax[i].get_position()
+            ax[i].set_position([box.x0, box.y0, box.width * 0.8, box.height])
+            ax[i].legend(loc='center left', bbox_to_anchor=(1, 0.5))
+
             ax[i].set_xlabel("time (s)")
             ax[i].set_ylabel(titles[i])
             ax[1].grid()
 
-        fig.suptitle("Test set - " + part, fontsize=16)
+        fig.suptitle("Wrench estimation - " + test_dataset + " - " + part , fontsize=16)
         manager = plt.get_current_fig_manager()
         manager.full_screen_toggle()
         plt.show()
@@ -129,28 +141,27 @@ if __name__ == "__main__":
         ft_filtered_insitu[:, 0] = filtfilt(b, a, prev_predict[:, 0])
         ft_filtered_insitu[:, 1] = filtfilt(b, a, prev_predict[:, 1])
         ft_filtered_insitu[:, 2] = filtfilt(b, a, prev_predict[:, 2])
-
         b, a = butter(2, 0.0003, btype='low', analog=False)
         # b, a = butter(2, 0.9999, btype='low', analog=False)
         fig = plt.figure()
         plt.plot(np.array(range(len(predict_dataset[:, 0]))) * 0.01,
                  np.linalg.norm(dataset["ft_expected"][:, :3], axis=1) / 9.80665 - 3.5 + 0.165,
-                 label="Ground-truth")
+                 label="Ground Truth")
         plt.plot(np.array(range(len(predict_dataset[:, 0]))) * 0.01,
                  filtfilt(b, a, np.linalg.norm(ft_filtered_NN, axis=1) / 9.80665 - 3.5 + 0.165),
-                 label="NN")
+                 label="Neural Network")
         plt.plot(np.array(range(len(predict_dataset[:, 0]))) * 0.01,
                  filtfilt(b, a, np.linalg.norm(ft_filtered_insitu, axis=1) / 9.80665 - 3.5 + 0.165),
-                 label="Linear in-situ calib")
+                 label="Linear")
         plt.xlabel("time (s)")
         plt.ylabel("norm(f) / g")
+        fig.suptitle("Weight estimation - " + test_dataset + " - " + part , fontsize=16)
         plt.grid()
         plt.legend()
         manager = plt.get_current_fig_manager()
         manager.full_screen_toggle()
         plt.show()
         fig.savefig("../figures/fig2_"+test_dataset+"_"+model_specification+".png")
-
 
         fig, ax = plt.subplots(6)
         for i in range(6):
@@ -165,13 +176,13 @@ if __name__ == "__main__":
             ax[i].plot(
                 np.array(range(len(predict_dataset[:, i]))) * 0.01,
                 np.abs(predict_dataset[:, i] - dataset["ft_expected"][:, i]),
-                label="NN output",
+                label="Neural Network",
             )
 
             ax[i].plot(
                 np.array(range(len(predict_dataset[:, i]))) * 0.01,
                 np.abs(prev_predict[:, i] - dataset["ft_expected"][:, i]),
-                label="Linear in-situ calib",
+                label="Linear",
             )
 
             if i == 0:
@@ -181,7 +192,7 @@ if __name__ == "__main__":
             ax[i].set_ylabel(titles[i])
             ax[1].grid()
 
-        fig.suptitle("Error Test set - " + part, fontsize=16)
+        fig.suptitle("Wrench estimation error - " + test_dataset + " - " + part , fontsize=16)
         manager = plt.get_current_fig_manager()
         manager.full_screen_toggle()
         plt.show()
