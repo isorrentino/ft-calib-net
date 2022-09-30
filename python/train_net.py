@@ -20,6 +20,9 @@ def train_net(file, part):
         dataset["joints"] = np.array(f["dataset"]["joints"])
         dataset["ft_expected"] = np.array(f["dataset"][part]["ft_expected"])
 
+    # Scale the temperature by a factor of 10 since a bug in the calibration dataset multiplies it by 10
+    dataset["ft_temperature"] = [elem/10.0 for elem in dataset["ft_temperature"]]
+
     # Scale the dataset
     scaling = dict()
     for key, value in dataset.items():
