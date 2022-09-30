@@ -1,11 +1,12 @@
-function [dataset] = create_dataset(filename, additional_weight)
+function [dataset] = create_dataset(filename, urdf)
     f = waitbar(0, 'Starting');
     robotName='iCubGenova09'; %% Name of the robot
     load(filename);
 
-    meshFilePrefix = [getenv('ROBOTOLOGY_SUPERBUILD_INSTALL_PREFIX') '/share']; %% Path to the model meshes
-    modelPath = [getenv('ROBOTOLOGY_SUPERBUILD_INSTALL_PREFIX') '/share/iCub/robots/' robotName '/'];  %% Path to the robot model
-    fileName='model.urdf'; %% Name of the urdf file
+    %meshFilePrefix = [getenv('ROBOTOLOGY_SUPERBUILD_INSTALL_PREFIX') '/share']; %% Path to the model meshes
+    %modelPath = [getenv('ROBOTOLOGY_SUPERBUILD_INSTALL_PREFIX') '/share/iCub/robots/' robotName '/'];  %% Path to the robot model
+    modelPath = './urdf/';
+    fileName = urdf; %% Name of the urdf file
     prefices = {'l_arm', 'r_arm'};
     joint_names = {'r_shoulder_pitch','r_shoulder_roll','r_shoulder_yaw','r_elbow','r_wrist_prosup'};
     %   ft_names_urdf = {'l_arm_ft_sensor';'r_arm_ft_sensor';'l_foot_front_ft_sensor'; ...
@@ -80,23 +81,23 @@ function [dataset] = create_dataset(filename, additional_weight)
     contact_index = estimator.model().getFrameIndex(char(contact_link));
 
     % Get trasform between inertial and wrist
-    rwrist_H_support = [0 0 1 -16.3e-3; -1 0 0 -41.9225e-3; 0 -1 0 9e-3; 0 0 0 1];
-    rw_H_support_idyn = iDynTree.Transform();
-    pos = iDynTree.Position();
-    pos.fromMatlab(rwrist_H_support(1:3, 4));
-    R = iDynTree.Rotation();
-    R.fromMatlab(rwrist_H_support(1:3, 1:3));
+%     rwrist_H_support = [0 0 1 -16.3e-3; -1 0 0 -41.9225e-3; 0 -1 0 9e-3; 0 0 0 1];
+%     rw_H_support_idyn = iDynTree.Transform();
+%     pos = iDynTree.Position();
+%     pos.fromMatlab(rwrist_H_support(1:3, 4));
+%     R = iDynTree.Rotation();
+%     R.fromMatlab(rwrist_H_support(1:3, 1:3));
+% 
+%     rw_H_support_idyn.setPosition(pos);
+%     rw_H_support_idyn.setRotation(R);
 
-    rw_H_support_idyn.setPosition(pos);
-    rw_H_support_idyn.setRotation(R);
+%     estimator.model().addAdditionalFrameToLink('r_wrist_1', 'r_external_support', rw_H_support_idyn);
 
-    estimator.model().addAdditionalFrameToLink('r_wrist_1', 'r_external_support', rw_H_support_idyn);
-
-    ext_support_frame_idx = estimator.model().getFrameIndex('r_external_support');
+%     ext_support_frame_idx = estimator.model().getFrameIndex('r_external_support');
 
     % Get the rotation between the inertial and the additional frame to
     % rotate the external wrench
-    ext_force_inertial = [0; 0; -additional_weight * gravityAcceleration];
+%     ext_force_inertial = [0; 0; -additional_weight * gravityAcceleration];
 
     kinDyn = iDynTree.KinDynComputations();
     kinDyn.loadRobotModel(estimator.model());
@@ -131,23 +132,23 @@ function [dataset] = create_dataset(filename, additional_weight)
         kinDyn.setJointPos(q_idyn);
 
         % Get rotation matrix between additional frame and inertial frame
-        A_R_r_external_support = kinDyn.getWorldTransform('r_external_support').getRotation().toMatlab();
-        position_external_support = iDynTree.Position();
-        position_external_support.fromMatlab(kinDyn.getWorldTransform('r_external_support').getPosition().toMatlab());
+%         A_R_r_external_support = kinDyn.getWorldTransform('r_external_support').getRotation().toMatlab();
+%         position_external_support = iDynTree.Position();
+%         position_external_support.fromMatlab(kinDyn.getWorldTransform('r_external_support').getPosition().toMatlab());
 
         % Rotate external wrench from inertial (-mg) to the frame of the
         % support
-        ext_force_support = A_R_r_external_support' * ext_force_inertial;
+%         ext_force_support = A_R_r_external_support' * ext_force_inertial;
 
-        rotated_ext_wrench_idyn = iDynTree.Wrench();
-        rotated_ext_wrench_idyn.fromMatlab([ext_force_support; 0; 0; 0]);
+%         rotated_ext_wrench_idyn = iDynTree.Wrench();
+%         rotated_ext_wrench_idyn.fromMatlab([ext_force_support; 0; 0; 0]);
 
-        knownWrenchContact = iDynTree.UnknownWrenchContact();
-        knownWrenchContact.unknownType = iDynTree.NO_UNKNOWNS;
-        knownWrenchContact.contactPoint = position_external_support;
-        knownWrenchContact.knownWrench = rotated_ext_wrench_idyn;
-
-        fullBodyUnknowns.addNewContactInFrame(estimator.model(), ext_support_frame_idx, knownWrenchContact);
+%         knownWrenchContact = iDynTree.UnknownWrenchContact();
+%         knownWrenchContact.unknownType = iDynTree.NO_UNKNOWNS;
+%         knownWrenchContact.contactPoint = position_external_support;
+%         knownWrenchContact.knownWrench = rotated_ext_wrench_idyn;
+% 
+%         fullBodyUnknowns.addNewContactInFrame(estimator.model(), ext_support_frame_idx, knownWrenchContact);
 
         % Update robot kinematics
         estimator.updateKinematicsFromFixedBase(q_idyn,dq_idyn,ddq_idyn,contact_index,grav_idyn);

@@ -5,6 +5,7 @@ import tensorflow as tf
 from tensorflow import keras
 from datetime import datetime
 from sklearn.model_selection import train_test_split
+import pickle
 
 
 def train_net(file, part):
@@ -19,6 +20,9 @@ def train_net(file, part):
         dataset["ft_temperature"] = np.array(f["dataset"][part]["ft_temperature"])
         dataset["joints"] = np.array(f["dataset"]["joints"])
         dataset["ft_expected"] = np.array(f["dataset"][part]["ft_expected"])
+
+    # Scale the temperature by a factor of 10 since a bug in the calibration dataset multiplies it by 10
+    dataset["ft_temperature"] = [elem/10.0 for elem in dataset["ft_temperature"]]
 
     # Scale the dataset
     scaling = dict()
@@ -42,6 +46,8 @@ def train_net(file, part):
     # Split between training and validation
     train_examples = np.expand_dims(numpy_dataset, axis=2)
     train_labels = np.expand_dims(numpy_expected, axis=2)
+
+    # train_dataset = tf.data.Dataset.from_tensor_slices((train_examples, train_labels))
     x_train, x_valid, y_train, y_valid = train_test_split(
         train_examples, train_labels, test_size=0.33, shuffle=True # TODO: validation size?
     )
