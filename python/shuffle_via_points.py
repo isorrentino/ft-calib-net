@@ -2,7 +2,7 @@ import random
 import xml.etree.ElementTree as ET
 
 # Read the original file
-tree = ET.parse('dataset_1.posright_arm')
+tree = ET.parse('sequence.posleft_arm')
 root = tree.getroot()
 
 # Retrieve the number of via points
